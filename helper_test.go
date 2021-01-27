@@ -29,6 +29,34 @@ func TestStrip(t *testing.T) {
 	}
 }
 
+func TestIsURL(t *testing.T) {
+	allow := []string{
+		"http://example.org",
+		"https://example.org:443",
+	}
+	deny := []string{
+		"",
+		"https",
+		"https://",
+		"http://www",
+		"/testing-path",
+		"testing-path",
+		"alskjff#?asf//dfas",
+	}
+	for _, u := range allow {
+		if !IsURL(u) {
+			t.Fail()
+			t.Log(u)
+		}
+	}
+	for _, u := range deny {
+		if IsURL(u) {
+			t.Fail()
+			t.Log(u)
+		}
+	}
+}
+
 func TestFileNameWithoutPath(t *testing.T) {
 	now := time.Now().Format("2006-01-02-150405")
 	expect := now + "-example-org.htm"

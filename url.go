@@ -26,6 +26,14 @@ func MatchURL(text string) []string {
 	return urls
 }
 
+// IsURL returns a result of validation for string.
+func IsURL(str string) bool {
+	re := regexp.MustCompile(`https?://?[-a-zA-Z0-9@:%._\+~#=]{1,255}\.[a-z]{0,63}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
+	match := re.FindAllString(str, -1)
+
+	return len(match) >= 1
+}
+
 func strip(link string) string {
 	u, err := url.Parse(link)
 	if err != nil {
