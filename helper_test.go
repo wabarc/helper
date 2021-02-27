@@ -6,6 +6,8 @@ package helper // import "github.com/wabarc/helper"
 
 import (
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -133,5 +135,18 @@ func TestFileSize(t *testing.T) {
 	got := FileSize(tmpfile.Name())
 	if got != size {
 		t.Fail()
+	}
+}
+
+func TestRealURI(t *testing.T) {
+	final := "https://example.com/"
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, final, http.StatusSeeOther)
+	}))
+	defer ts.Close()
+
+	got := RealURI(ts.URL)
+	if got != final {
+		t.Fatalf("Test get final URL failed, expect: %v got: %s", final, got)
 	}
 }
