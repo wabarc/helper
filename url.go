@@ -9,6 +9,7 @@ Package helper handles common functions for the waybackk application in Golang.
 package helper // import "github.com/wabarc/helper"
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -67,4 +68,33 @@ func RealURI(link string) string {
 	defer resp.Body.Close()
 
 	return resp.Request.URL.String()
+}
+
+func TinyURL(link string) string {
+	_, err := url.Parse(link)
+	if err != nil {
+		return ""
+	}
+
+	resp, err := http.Get("https://tinyurl.com/api-create.php?url=" + link)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return ""
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+
+	final := string(body)
+	if final != "Error" {
+		return final
+	}
+
+	return ""
 }

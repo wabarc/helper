@@ -150,3 +150,11 @@ func TestRealURI(t *testing.T) {
 		t.Fatalf("Test get final URL failed, expect: %v got: %s", final, got)
 	}
 }
+
+func TestTinyURL(t *testing.T) {
+	link := "https://example.com/"
+	got := TinyURL(link)
+	if !strings.Contains(got, "tinyurl.com") {
+		t.Fatalf("Tiny URL failed, got: %s", got)
+	}
+}
