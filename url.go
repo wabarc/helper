@@ -12,16 +12,17 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
+
+	"mvdan.cc/xurls/v2"
 )
 
 // MatchURL is extract URL from text, returns []string always.
 func MatchURL(text string) []string {
-	re := regexp.MustCompile(`https?://?[-a-zA-Z0-9@:%._\+~#=]{1,255}\.[a-z]{0,63}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
 	urls := []string{}
-	match := re.FindAllString(text, -1)
-	for _, el := range match {
+	rx := xurls.Strict()
+	matches := rx.FindAllString(text, -1)
+	for _, el := range matches {
 		urls = append(urls, strip(el))
 	}
 
@@ -30,10 +31,12 @@ func MatchURL(text string) []string {
 
 // IsURL returns a result of validation for string.
 func IsURL(str string) bool {
-	re := regexp.MustCompile(`https?://?[-a-zA-Z0-9@:%._\+~#=]{1,255}\.[a-z]{0,63}\b(?:[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
-	match := re.FindAllString(str, -1)
+	u, err := url.Parse(str)
+	if err != nil {
+		return false
+	}
 
-	return len(match) >= 1
+	return u.Scheme != "" && strings.Contains(u.Host, ".")
 }
 
 func strip(link string) string {

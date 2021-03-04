@@ -31,6 +31,19 @@ func TestStrip(t *testing.T) {
 	}
 }
 
+func TestMatchURL(t *testing.T) {
+	text := `
+foo bar https://example.org/ zoo
+foo bar https://example.org/a_(b)?args=中文 zoo
+foo bar https://example.org/せかい zoo
+`
+	matched := MatchURL(text)
+	if len(matched) != 3 {
+		t.Log(matched)
+		t.Fail()
+	}
+}
+
 func TestIsURL(t *testing.T) {
 	allow := []string{
 		"http://example.org",
