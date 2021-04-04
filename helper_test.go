@@ -171,3 +171,12 @@ func TestTinyURL(t *testing.T) {
 		t.Fatalf("Tiny URL failed, got: %s", got)
 	}
 }
+
+func TestRandString(t *testing.T) {
+	got := RandString(36, "")
+	t.Log(got)
+	if len(got) != 36 {
+		t.Log(got)
+		t.Fatalf("Test random string failed, expect: %d, got: %d", 36, len(got))
+	}
+}
