@@ -5,6 +5,8 @@
 package helper // import "github.com/wabarc/helper"
 
 import (
+	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -152,6 +154,10 @@ func TestFileSize(t *testing.T) {
 }
 
 func TestRealURI(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip test in short mode.")
+	}
+
 	final := "https://example.com/"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, final, http.StatusSeeOther)
@@ -165,6 +171,10 @@ func TestRealURI(t *testing.T) {
 }
 
 func TestTinyURL(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skip test in short mode.")
+	}
+
 	link := "https://example.com/"
 	got := TinyURL(link)
 	if !strings.Contains(got, "tinyurl.com") {
@@ -174,9 +184,31 @@ func TestTinyURL(t *testing.T) {
 
 func TestRandString(t *testing.T) {
 	got := RandString(36, "")
-	t.Log(got)
 	if len(got) != 36 {
 		t.Log(got)
 		t.Fatalf("Test random string failed, expect: %d, got: %d", 36, len(got))
+	}
+}
+
+func TestMockServer(t *testing.T) {
+	httpClient, mux, server := MockServer()
+	defer server.Close()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello, World.")
+	})
+
+	resp, err := httpClient.Get(server.URL)
+	if err != nil {
+		t.Fatalf(`Unexpected http get %s failed: %v`, server.URL, err)
+	}
+	defer resp.Body.Close()
+
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf(`Unexpected read body failed: %v`, err)
+	}
+	if string(bytes) != "Hello, World." {
+		t.Error("Parsed content not match.")
 	}
 }
