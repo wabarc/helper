@@ -34,15 +34,69 @@ func TestStrip(t *testing.T) {
 }
 
 func TestMatchURL(t *testing.T) {
-	text := `
-foo bar https://example.org/ zoo
-foo bar https://example.org/a_(b)?args=中文 zoo
-foo bar https://example.org/せかい zoo
-`
-	matched := MatchURL(text)
-	if len(matched) != 3 {
-		t.Log(matched)
-		t.Fail()
+	var tests = []struct {
+		name     string
+		text     string
+		expected string
+	}{
+		{
+			name:     "Match Host",
+			text:     "foo bar https://example.org/ zoo",
+			expected: "https://example.org/",
+		},
+		{
+			name:     "Match Host and Args",
+			text:     "foo bar https://example.org/a_(b)?args=世界 zoo",
+			expected: "https://example.org/a_(b)?args=%E4%B8%96%E7%95%8C",
+		},
+		{
+			name:     "Match Path",
+			text:     "foo bar https://example.org/せかい zoo",
+			expected: "https://example.org/%E3%81%9B%E3%81%8B%E3%81%84",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			matched := MatchURL(test.text)
+			if len(matched) == 0 {
+				t.Fatalf("Unexpected match URL number, got %d instead of 0", len(matched))
+			}
+			if matched[0] != test.expected {
+				t.Errorf("Unexpected match URL, got %s instead of [%s]", matched, test.expected)
+			}
+		})
+	}
+}
+
+func TestMatchURLFallback(t *testing.T) {
+	var tests = []struct {
+		name     string
+		text     string
+		expected string
+	}{
+		{
+			name:     "Match Path",
+			text:     "foo bar https://example.org/せかい zoo",
+			expected: "https://webcache.googleusercontent.com/search?q=cache:https://example.org/%E3%81%9B%E3%81%8B%E3%81%84",
+		},
+		{
+			name:     "Match and Use Google Cache",
+			text:     "foo bar https://example.org/404 zoo",
+			expected: "https://webcache.googleusercontent.com/search?q=cache:https://example.org/404",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			matched := MatchURLFallback(test.text)
+			if len(matched) == 0 {
+				t.Fatalf("Unexpected match URL number, got %d instead of 0", len(matched))
+			}
+			if matched[0] != test.expected {
+				t.Errorf("Unexpected match URL, got %s instead of [%s]", matched, test.expected)
+			}
+		})
 	}
 }
 
@@ -210,5 +264,42 @@ func TestMockServer(t *testing.T) {
 	}
 	if string(bytes) != "Hello, World." {
 		t.Error("Parsed content not match.")
+	}
+}
+
+func TestNotFound(t *testing.T) {
+	_, mux, server := MockServer()
+	defer server.Close()
+
+	var tests = []struct {
+		name     string
+		code     int
+		expected bool
+	}{
+		{
+			name:     "HTTP 200",
+			code:     http.StatusOK,
+			expected: false,
+		},
+		{
+			name:     "HTTP 404",
+			code:     http.StatusOK,
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			p := "/" + RandString(5, "lower")
+			mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(test.code)
+				fmt.Fprintf(w, "Hello, World.")
+			})
+
+			f := NotFound(server.URL + p)
+			if f != test.expected {
+				t.Fatalf(`Unexpected check url status, got %v instead of %t`, f, test.expected)
+			}
+		})
 	}
 }

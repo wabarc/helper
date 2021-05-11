@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"mvdan.cc/xurls/v2"
 )
@@ -29,6 +30,24 @@ func MatchURL(text string) []string {
 	return urls
 }
 
+// MatchURLFallback is extract URL from text, and convert to
+// Google cache endpoint if not found, returns []string always.
+func MatchURLFallback(text string) []string {
+	urls := []string{}
+	rx := xurls.Strict()
+	matches := rx.FindAllString(text, -1)
+	cache := "https://webcache.googleusercontent.com/search?q=cache:"
+	for _, el := range matches {
+		uri := strip(el)
+		if NotFound(uri) {
+			uri = cache + uri
+		}
+		urls = append(urls, uri)
+	}
+
+	return urls
+}
+
 // IsURL returns a result of validation for string.
 func IsURL(str string) bool {
 	u, err := url.Parse(str)
@@ -39,16 +58,51 @@ func IsURL(str string) bool {
 	return u.Scheme != "" && strings.Contains(u.Host, ".")
 }
 
+// NotFound returns a result of URI status is 404
+func NotFound(uri string) bool {
+	if _, err := url.Parse(uri); err != nil {
+		return true
+	}
+
+	noRedirect := func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+
+	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: noRedirect}
+	resp, err := client.Head(uri)
+	if err != nil {
+		return true
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return true
+	}
+	return false
+}
+
 func strip(link string) string {
 	u, err := url.Parse(link)
 	if err != nil {
 		return ""
 	}
 
+	var p = strings.HasPrefix
+	var e = strings.EqualFold
+	var maps = map[string]func(string, string) bool{
+		"utm_":      p,
+		"at_custom": p,
+		"at_medium": p,
+		"weibo_id":  e,
+		"fbclid":    e,
+		"chksm":     e,
+	}
 	queries := u.Query()
 	for key := range queries {
-		if strings.HasPrefix(key, "utm_") || strings.HasPrefix(key, "at_custom") || strings.HasPrefix(key, "at_medium") || strings.EqualFold(key, "weibo_id") {
-			queries.Del(key)
+		for prefix, v := range maps {
+			if v(key, prefix) {
+				queries.Del(key)
+			}
 		}
 	}
 
