@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -299,6 +300,43 @@ func TestNotFound(t *testing.T) {
 			f := NotFound(server.URL + p)
 			if f != test.expected {
 				t.Fatalf(`Unexpected check url status, got %v instead of %t`, f, test.expected)
+			}
+		})
+	}
+}
+
+func TestWritable(t *testing.T) {
+	dir, err := ioutil.TempDir(os.TempDir(), "helper-")
+	if err != nil {
+		t.Fatalf(`Unexpected create temp dir: %v`, err)
+	}
+	defer os.RemoveAll(dir)
+
+	var tests = []struct {
+		name string
+		perm os.FileMode
+		expt error
+	}{
+		{
+			name: "wrx",
+			perm: 0777,
+			expt: nil,
+		},
+		{
+			name: "r",
+			perm: 0400,
+			expt: fmt.Errorf(`'%s' is not writable`, filepath.Join(dir, "r")),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			path := filepath.Join(dir, test.name)
+			if err := os.Mkdir(path, test.perm); err != nil {
+				t.Fatalf(`Unexpected create sub dir: %v`, err)
+			}
+			if err := Writable(path); err != nil && err.Error() != test.expt.Error() {
+				t.Fatalf(`Unexpected dir writable, got <%v> instead of <%v>`, err, test.expt)
 			}
 		})
 	}
