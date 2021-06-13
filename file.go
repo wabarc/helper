@@ -21,7 +21,7 @@ import (
 // FileName returns filename from webpage's link and content type.
 func FileName(link, contentType string) string {
 	now := time.Now().Format("2006-01-02-150405")
-	ext := "html"
+	ext := ".html"
 	if exts, _ := mime.ExtensionsByType(contentType); len(exts) > 0 {
 		ext = exts[0]
 	}
