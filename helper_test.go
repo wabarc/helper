@@ -341,3 +341,18 @@ func TestWritable(t *testing.T) {
 		})
 	}
 }
+
+func TestSetField(t *testing.T) {
+	type s struct {
+		Key string
+		Val string
+	}
+
+	var test s
+	if err := SetField(&test, "Key", "foo"); err != nil {
+		t.Fatalf(`Unexpected set field: %v`, err)
+	}
+	if test.Key != "foo" {
+		t.Fail()
+	}
+}

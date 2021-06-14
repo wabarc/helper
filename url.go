@@ -75,10 +75,7 @@ func NotFound(uri string) bool {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
-		return true
-	}
-	return false
+	return resp.StatusCode == http.StatusNotFound
 }
 
 func strip(link string) string {
