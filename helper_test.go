@@ -427,3 +427,31 @@ func TestExists(t *testing.T) {
 		})
 	}
 }
+
+func TestMoveFile(t *testing.T) {
+	dir, err := ioutil.TempDir("", "helper")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	content := []byte("Hello, Golang!")
+	srcfile, err := ioutil.TempFile("", "helper-")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := srcfile.Write(content); err != nil {
+		t.Fatal(err)
+	}
+
+	dstfile := filepath.Join(dir, RandString(10, ""))
+	if err := MoveFile(srcfile.Name(), dstfile); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = os.Stat(dstfile)
+	if err != nil {
+		t.Fatal(err)
+	}
+}

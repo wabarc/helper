@@ -10,6 +10,7 @@ package helper // import "github.com/wabarc/helper"
 
 import (
 	"fmt"
+	"io"
 	"mime"
 	"net/url"
 	"os"
@@ -63,4 +64,45 @@ func Exists(name string) bool {
 		}
 	}
 	return true
+}
+
+// MoveFile move file to another directory.
+func MoveFile(src, dst string) error {
+	if src == dst {
+		return nil
+	}
+
+	in, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("Couldn't open source file: %s", err)
+	}
+
+	si, err := in.Stat()
+	if err != nil {
+		return fmt.Errorf("Stat error: %s", err)
+	}
+	flag := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+	perm := si.Mode() & os.ModePerm
+	out, err := os.OpenFile(dst, flag, perm)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, in)
+	in.Close()
+	if err != nil {
+		return fmt.Errorf("Writing to output file failed: %s", err)
+	}
+
+	err = out.Sync()
+	if err != nil {
+		return fmt.Errorf("Sync error: %s", err)
+	}
+
+	err = os.Remove(src)
+	if err != nil {
+		return fmt.Errorf("Failed removing original file: %s", err)
+	}
+	return nil
 }
