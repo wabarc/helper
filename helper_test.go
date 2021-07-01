@@ -130,7 +130,7 @@ func TestIsURL(t *testing.T) {
 }
 
 func TestFileNameWithoutPath(t *testing.T) {
-	now := time.Now().Format("2006-01-02-150405")
+	now := time.Now().Format("2006-01-02-150405.000")
 	expect := now + "-example-org.htm"
 	link := "https://example.org"
 	ct := "text/html; charset=UTF-8"
@@ -142,7 +142,7 @@ func TestFileNameWithoutPath(t *testing.T) {
 }
 
 func TestFileNameWithPath(t *testing.T) {
-	now := time.Now().Format("2006-01-02-150405")
+	now := time.Now().Format("2006-01-02-150405.000")
 	expect := now + "-example-org-some-path.htm"
 	link := "https://example.org/some-path?k=v"
 	ct := "text/html; charset=UTF-8"
@@ -154,7 +154,7 @@ func TestFileNameWithPath(t *testing.T) {
 }
 
 func TestFileNameIsPNG(t *testing.T) {
-	now := time.Now().Format("2006-01-02-150405")
+	now := time.Now().Format("2006-01-02-150405.000")
 	expect := now + "-example-org-path-to-image.png"
 	link := "https://example.org/path-to-image"
 	ct := "image/png"
@@ -166,7 +166,7 @@ func TestFileNameIsPNG(t *testing.T) {
 }
 
 func TestFileNameIsJPG(t *testing.T) {
-	now := time.Now().Format("2006-01-02-150405")
+	now := time.Now().Format("2006-01-02-150405.000")
 	expect := now + "-example-org-path-to-image.jpe"
 	link := "https://example.org/path-to-image"
 	ct := "image/jpeg"
@@ -269,6 +269,8 @@ func TestMockServer(t *testing.T) {
 }
 
 func TestNotFound(t *testing.T) {
+	t.Parallel()
+
 	_, mux, server := MockServer()
 	defer server.Close()
 
@@ -306,6 +308,8 @@ func TestNotFound(t *testing.T) {
 }
 
 func TestWritable(t *testing.T) {
+	t.Parallel()
+
 	dir, err := ioutil.TempDir(os.TempDir(), "helper-")
 	if err != nil {
 		t.Fatalf(`Unexpected create temp dir: %v`, err)
@@ -381,5 +385,45 @@ func TestIsDir(t *testing.T) {
 
 	if ok := IsDir(dir); !ok {
 		t.Fatalf(`Unexpected check path is directory, got %t instread of true`, ok)
+	}
+}
+
+func TestExists(t *testing.T) {
+	t.Parallel()
+
+	content := []byte("Hello, Golang!")
+	tmpfile, err := ioutil.TempFile("", "helper-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	if _, err := tmpfile.Write(content); err != nil {
+		t.Fatal(err)
+	}
+
+	var tests = []struct {
+		name     string
+		filepath string
+		expected bool
+	}{
+		{
+			name:     "file exist",
+			filepath: tmpfile.Name(),
+			expected: true,
+		},
+		{
+			name:     "file not exist",
+			filepath: RandString(5, ""),
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if ok := Exists(test.filepath); ok != test.expected {
+				t.Fatalf(`Unexpected check file exists, got %t instread of %t`, ok, test.expected)
+			}
+		})
 	}
 }

@@ -20,7 +20,7 @@ import (
 
 // FileName returns filename from webpage's link and content type.
 func FileName(link, contentType string) string {
-	now := time.Now().Format("2006-01-02-150405")
+	now := time.Now().Format("2006-01-02-150405.000")
 	ext := ".html"
 	if exts, _ := mime.ExtensionsByType(contentType); len(exts) > 0 {
 		ext = exts[0]
@@ -53,4 +53,14 @@ func FileSize(filepath string) int64 {
 	}
 
 	return f.Size()
+}
+
+// Exists reports whether the named file or directory exists.
+func Exists(name string) bool {
+	if _, err := os.Stat(name); err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+	return true
 }
