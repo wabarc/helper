@@ -356,3 +356,30 @@ func TestSetField(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestIsDir(t *testing.T) {
+	content := []byte("Hello, Golang!")
+	tmpfile, err := ioutil.TempFile("", "helper-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	if _, err := tmpfile.Write(content); err != nil {
+		t.Fatal(err)
+	}
+
+	if ok := IsDir(tmpfile.Name()); ok {
+		t.Fatalf(`Unexpected check path is directory, got %t instread of false`, ok)
+	}
+
+	dir, err := ioutil.TempDir("", "helper")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	if ok := IsDir(dir); !ok {
+		t.Fatalf(`Unexpected check path is directory, got %t instread of true`, ok)
+	}
+}
