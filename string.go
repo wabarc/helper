@@ -23,6 +23,7 @@ func RandString(length int, letter string) string {
 	}
 
 	bytes := make([]byte, length)
+	rand.Seed(time.Now().UnixNano())
 	rand.Read(bytes)
 	for i := range bytes {
 		bytes[i] = alphabet[rand.Int63()%int64(len(alphabet))]
