@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -452,6 +453,22 @@ func TestMoveFile(t *testing.T) {
 
 	_, err = os.Stat(dstfile)
 	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestWebPToPNG(t *testing.T) {
+	if _, err := exec.LookPath("dwebp"); err != nil {
+		t.Skip(err)
+	}
+	src := "testdata/1.webp"
+	dst := "testdata/1.png"
+
+	if err := WebPToPNG(src, dst); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(dst); os.IsNotExist(err) {
 		t.Fatal(err)
 	}
 }

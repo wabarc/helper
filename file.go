@@ -14,6 +14,7 @@ import (
 	"mime"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 	"time"
@@ -103,6 +104,23 @@ func MoveFile(src, dst string) error {
 	err = os.Remove(src)
 	if err != nil {
 		return fmt.Errorf("Failed removing original file: %s", err)
+	}
+	return nil
+}
+
+// WebPToPNG convert WebP to PNG
+func WebPToPNG(src, dst string) error {
+	dwebp, err := exec.LookPath("dwebp")
+	if err != nil {
+		return err
+	}
+	args := []string{src, "-o", dst}
+	cmd := exec.Command(dwebp, args...)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		return err
 	}
 	return nil
 }
