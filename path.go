@@ -22,6 +22,8 @@ func FindChromeExecPath() string {
 	case "darwin":
 		locations = []string{
 			// Mac
+			"chrome",
+			"chromium",
 			"/Applications/Chromium.app/Contents/MacOS/Chromium",
 			"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 		}
@@ -29,6 +31,7 @@ func FindChromeExecPath() string {
 		locations = []string{
 			// Windows
 			"chrome",
+			"chromium",
 			"chrome.exe", // in case PATHEXT is misconfigured
 			`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
 			`C:\Program Files\Google\Chrome\Application\chrome.exe`,
@@ -39,6 +42,7 @@ func FindChromeExecPath() string {
 			// Unix-like
 			"headless_shell",
 			"headless-shell",
+			"chrome",
 			"chromium",
 			"chromium-browser",
 			"google-chrome",
