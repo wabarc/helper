@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -470,5 +471,50 @@ func TestWebPToPNG(t *testing.T) {
 
 	if _, err := os.Stat(dst); os.IsNotExist(err) {
 		t.Fatal(err)
+	}
+}
+
+func TestViaTor(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.NewServeMux())
+	defer server.Close()
+
+	p, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var tests = []struct {
+		host string
+		port string
+
+		addr string
+	}{
+		{
+			host: "",
+			port: "",
+			addr: "127.0.0.1:9050",
+		},
+		{
+			host: p.Hostname(),
+			port: p.Port(),
+			addr: p.Host,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.addr, func(t *testing.T) {
+			os.Clearenv()
+			os.Setenv("TOR_HOST", test.host)
+			os.Setenv("TOR_SOCKS_PORT", test.port)
+			addr, err := ViaTor()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if addr != test.addr {
+				t.Errorf(`Unexpected via tor, got %s instead of %s`, addr, test.addr)
+			}
+		})
 	}
 }
