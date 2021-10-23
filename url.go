@@ -64,12 +64,19 @@ func NotFound(uri string) bool {
 		return true
 	}
 
+	req, err := http.NewRequest(http.MethodHead, uri, nil)
+	if err != nil {
+		return true
+	}
+	ua := `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.7113.093 Safari/537.36`
+	req.Header.Set("User-Agent", ua)
+
 	noRedirect := func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
+	client := &http.Client{Timeout: 10 * time.Second, CheckRedirect: noRedirect}
 
-	client := &http.Client{Timeout: 30 * time.Second, CheckRedirect: noRedirect}
-	resp, err := client.Head(uri)
+	resp, err := client.Do(req)
 	if err != nil {
 		return true
 	}
