@@ -16,7 +16,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestStrip(t *testing.T) {
@@ -131,51 +130,49 @@ func TestIsURL(t *testing.T) {
 	}
 }
 
-func TestFileNameWithoutPath(t *testing.T) {
-	now := time.Now().Format("2006-01-02-150405.000")
-	expect := now + "-example-org.htm"
-	link := "https://example.org"
-	ct := "text/html; charset=UTF-8"
+func TestFileName(t *testing.T) {
+	t.Parallel()
 
-	got := FileName(link, ct)
-	if got != expect {
-		t.Fail()
+	var tests = []struct {
+		link string
+		ct   string
+
+		suffix string
+	}{
+		{
+			link:   "",
+			ct:     "",
+			suffix: "",
+		},
+		{
+			link:   "https://example.org",
+			ct:     "text/html; charset=UTF-8",
+			suffix: "-example-org.htm",
+		},
+		{
+			link:   "https://example.org/some-path?k=v",
+			ct:     "text/html; charset=UTF-8",
+			suffix: "-example-org-some-path.htm",
+		},
+		{
+			link:   "https://example.org/path-to-image",
+			ct:     "image/png",
+			suffix: "-example-org-path-to-image.png",
+		},
+		{
+			link:   "https://example.org/path-to-image",
+			ct:     "image/jpeg",
+			suffix: "-example-org-path-to-image.jpe",
+		},
 	}
-}
 
-func TestFileNameWithPath(t *testing.T) {
-	now := time.Now().Format("2006-01-02-150405.000")
-	expect := now + "-example-org-some-path.htm"
-	link := "https://example.org/some-path?k=v"
-	ct := "text/html; charset=UTF-8"
-
-	got := FileName(link, ct)
-	if got != expect {
-		t.Fail()
-	}
-}
-
-func TestFileNameIsPNG(t *testing.T) {
-	now := time.Now().Format("2006-01-02-150405.000")
-	expect := now + "-example-org-path-to-image.png"
-	link := "https://example.org/path-to-image"
-	ct := "image/png"
-
-	got := FileName(link, ct)
-	if got != expect {
-		t.Fail()
-	}
-}
-
-func TestFileNameIsJPG(t *testing.T) {
-	now := time.Now().Format("2006-01-02-150405.000")
-	expect := now + "-example-org-path-to-image.jpe"
-	link := "https://example.org/path-to-image"
-	ct := "image/jpeg"
-
-	got := FileName(link, ct)
-	if got != expect {
-		t.Fail()
+	for _, test := range tests {
+		t.Run(test.suffix, func(t *testing.T) {
+			filename := FileName(test.link, test.ct)
+			if !strings.HasSuffix(filename, test.suffix) {
+				t.Errorf(`Unexpected generate file name, got %s instead of has suffix %s`, filename, test.suffix)
+			}
+		})
 	}
 }
 
