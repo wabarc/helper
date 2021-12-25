@@ -8,8 +8,10 @@ import (
 	"bufio"
 	"io"
 	"math/rand"
+	"reflect"
 	"strings"
 	"time"
+	"unsafe"
 
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
@@ -64,4 +66,19 @@ func determineEncodingFromReader(r io.Reader) (e encoding.Encoding, name string,
 
 	e, name, _ = charset.DetermineEncoding(buf, "")
 	return
+}
+
+// String2Byte converts string to a byte slice without memory allocation.
+func String2Byte(s string) (b []byte) {
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	bh.Data = sh.Data
+	bh.Cap = sh.Len
+	bh.Len = sh.Len
+	return b
+}
+
+// Byte2String converts byte slice to a string without memory allocation.
+func Byte2String(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
 }
