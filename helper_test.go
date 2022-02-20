@@ -218,9 +218,13 @@ func TestRealURI(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	got := RealURI(ts.URL)
-	if got != final {
-		t.Fatalf("Test get final URL failed, expect: %v got: %s", final, got)
+	u, _ := url.Parse(ts.URL)
+	want := RealURI(u)
+	if want == nil {
+		t.Fatalf("Failed to request real uri")
+	}
+	if want.String() != final {
+		t.Fatalf("Test get final URL failed, expect: %v got: %s", final, want.String())
 	}
 }
 

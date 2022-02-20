@@ -5,7 +5,6 @@
 /*
 Package helper handles common functions for the waybackk application in Golang.
 */
-
 package helper // import "github.com/wabarc/helper"
 
 import (
@@ -116,19 +115,14 @@ func strip(link string) string {
 }
 
 // RealURI returns final URL
-func RealURI(link string) string {
-	u, err := url.Parse(link)
+func RealURI(u *url.URL) *url.URL {
+	resp, err := http.Head(u.String())
 	if err != nil {
-		return ""
-	}
-
-	resp, err := http.Get(u.String())
-	if err != nil {
-		return ""
+		return u
 	}
 	defer resp.Body.Close()
 
-	return resp.Request.URL.String()
+	return resp.Request.URL
 }
 
 func TinyURL(link string) string {
