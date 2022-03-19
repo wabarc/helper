@@ -6,7 +6,6 @@ package helper // import "github.com/wabarc/helper"
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -137,40 +137,40 @@ func TestFileName(t *testing.T) {
 		link string
 		ct   string
 
-		suffix string
+		regex *regexp.Regexp
 	}{
 		{
-			link:   "",
-			ct:     "",
-			suffix: "",
+			link:  "",
+			ct:    "",
+			regex: regexp.MustCompile(""),
 		},
 		{
-			link:   "https://example.org",
-			ct:     "text/html; charset=UTF-8",
-			suffix: "-example-org.htm",
+			link:  "https://example.org",
+			ct:    "text/html; charset=UTF-8",
+			regex: regexp.MustCompile("-example-org.html"),
 		},
 		{
-			link:   "https://example.org/some-path?k=v",
-			ct:     "text/html; charset=UTF-8",
-			suffix: "-example-org-some-path.htm",
+			link:  "https://example.org/some-path?k=v",
+			ct:    "text/html; charset=UTF-8",
+			regex: regexp.MustCompile("-example-org-some-path.html"),
 		},
 		{
-			link:   "https://example.org/path-to-image",
-			ct:     "image/png",
-			suffix: "-example-org-path-to-image.png",
+			link:  "https://example.org/path-to-image",
+			ct:    "image/png",
+			regex: regexp.MustCompile("-example-org-path-to-image.png"),
 		},
 		{
-			link:   "https://example.org/path-to-image",
-			ct:     "image/jpeg",
-			suffix: "-example-org-path-to-image.jpe",
+			link:  "https://example.org/path-to-image",
+			ct:    "image/jpeg",
+			regex: regexp.MustCompile("-example-org-path-to-image.(jpg|jpe|jpeg|jfif)"),
 		},
 	}
 
 	for _, test := range tests {
-		t.Run(test.suffix, func(t *testing.T) {
+		t.Run(test.regex.String(), func(t *testing.T) {
 			filename := FileName(test.link, test.ct)
-			if !strings.HasSuffix(filename, test.suffix) {
-				t.Errorf(`Unexpected generate file name, got %s instead of has suffix %s`, filename, test.suffix)
+			if !test.regex.MatchString(filename) {
+				t.Errorf(`Unexpected generate file name, got %s instead of has suffix %s`, filename, test.regex)
 			}
 		})
 	}
@@ -262,7 +262,7 @@ func TestMockServer(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	bytes, err := io.ReadAll(resp.Body)
+	bytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf(`Unexpected read body failed: %v`, err)
 	}
@@ -447,6 +447,7 @@ func TestMoveFile(t *testing.T) {
 	if _, err := srcfile.Write(content); err != nil {
 		t.Fatal(err)
 	}
+	srcfile.Close()
 
 	dstfile := filepath.Join(dir, RandString(10, ""))
 	if err := MoveFile(srcfile.Name(), dstfile); err != nil {
