@@ -99,6 +99,7 @@ func strip(link string) string {
 		"weibo_id":  e,
 		"fbclid":    e,
 		"chksm":     e,
+		"dt_dapp":   e,
 	}
 	queries := u.Query()
 	for key := range queries {
