@@ -520,3 +520,37 @@ func TestViaTor(t *testing.T) {
 		})
 	}
 }
+
+func TestUnsetenv(t *testing.T) {
+	t.Parallel()
+
+	var tests = []struct {
+		env string
+		val string
+	}{
+		{
+			env: "",
+			val: "",
+		},
+		{
+			env: "FOO",
+			val: "bar",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run("", func(t *testing.T) {
+			os.Clearenv()
+			os.Setenv(test.env, test.val)
+			val := os.Getenv(test.env)
+			if val != test.val {
+				t.Fatalf(`Unexpected set env, got %s instead of %s`, val, test.val)
+			}
+			Unsetenv(test.env)
+			val = os.Getenv(test.env)
+			if val != "" {
+				t.Fatalf(`Unexpected unset env, got %s instead of empty value`, val)
+			}
+		})
+	}
+}
