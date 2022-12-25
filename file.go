@@ -15,9 +15,10 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"path"
 	"strings"
 	"time"
+
+	"github.com/kennygrant/sanitize"
 )
 
 // FileName returns filename from webpage's link and content type.
@@ -46,7 +47,7 @@ func FileName(link, contentType string) string {
 		return fmt.Sprintf("%s-%s%s", now, domain, ext)
 	}
 
-	baseName := path.Base(u.Path)
+	baseName := strings.TrimPrefix(sanitize.BaseName(u.Path), "-")
 	if parts := strings.Split(baseName, "-"); len(parts) > 4 {
 		baseName = strings.Join(parts[:4], "-")
 	}
