@@ -554,3 +554,60 @@ func TestUnsetenv(t *testing.T) {
 		})
 	}
 }
+
+func TestWriteFile(t *testing.T) {
+	t.Parallel()
+
+	dir, err := ioutil.TempDir("", "helper")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	data := []byte("Hello, Golang!")
+	file, err := ioutil.TempFile(dir, "file-exist")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := file.Name()
+
+	var tests = []struct {
+		name     string
+		filepath string
+		data     []byte
+		err      string
+	}{
+		{
+			name:     "file exist",
+			filepath: f,
+			data:     data,
+			err:      "<nil>",
+		},
+		{
+			name:     "file not exist",
+			filepath: filepath.Join(dir, "file-non-exist"),
+			data:     data,
+			err:      "<nil>",
+		},
+		{
+			name:     "data nil and file exist",
+			filepath: f,
+			data:     data,
+			err:      "<nil>",
+		},
+		{
+			name:     "data nil and file non exist",
+			filepath: f,
+			data:     nil,
+			err:      "no data write",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := WriteFile(test.filepath, test.data, 0644); !strings.Contains(fmt.Sprint(err), test.err) {
+				t.Fatalf(`Unexpected write file, got %v`, err)
+			}
+		})
+	}
+}

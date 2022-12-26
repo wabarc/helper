@@ -9,6 +9,7 @@ Package helper handles common functions for the waybackk application in Golang.
 package helper // import "github.com/wabarc/helper"
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"mime"
@@ -115,6 +116,27 @@ func MoveFile(src, dst string) error {
 		return fmt.Errorf("Failed removing original file: %s", err)
 	}
 	return nil
+}
+
+// WriteFile writes byte slices to a specified path; it will be created
+// if it does not exist. It returns an error.
+func WriteFile(path string, data []byte, mode os.FileMode) error {
+	if data == nil {
+		return fmt.Errorf("no data write to: %s", path)
+	}
+
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, mode)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writer := bufio.NewWriter(file)
+	if _, err = writer.Write(data); err != nil {
+		return err
+	}
+
+	return writer.Flush()
 }
 
 // WebPToPNG convert WebP to PNG
