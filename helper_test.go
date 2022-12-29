@@ -611,3 +611,22 @@ func TestWriteFile(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkWriteFile(b *testing.B) {
+	dir, err := ioutil.TempDir("", "helper")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	data := []byte("Hello, Golang!")
+	file, err := ioutil.TempFile(dir, "file-exist")
+	if err != nil {
+		b.Fatal(err)
+	}
+	fn := file.Name()
+
+	for i := 0; i < b.N; i++ {
+		_ = WriteFile(fn, data, 0644)
+	}
+}
