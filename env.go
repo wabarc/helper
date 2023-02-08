@@ -7,7 +7,12 @@ package helper // import "github.com/wabarc/helper"
 import (
 	"bufio"
 	"os"
+	"strings"
+
+	"github.com/mattn/go-isatty"
 )
+
+const space = ` `
 
 // Unsetenv unsets given envs
 func Unsetenv(envs ...string) {
@@ -27,8 +32,10 @@ func HasStdin() bool {
 
 	isPipedFromChrDev := (mode & os.ModeCharDevice) == 0
 	isPipedFromFIFO := (mode & os.ModeNamedPipe) != 0
+	isTerminal := isatty.IsTerminal(os.Stdout.Fd()) ||
+		isatty.IsCygwinTerminal(os.Stdout.Fd())
 
-	return isPipedFromChrDev || isPipedFromFIFO
+	return isTerminal && (isPipedFromChrDev || isPipedFromFIFO)
 }
 
 // ReadStdin reads stdin to slice.
@@ -36,7 +43,7 @@ func ReadStdin() (stdin []string) {
 	if HasStdin() {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			stdin = append(stdin, scanner.Text())
+			stdin = append(stdin, strings.Split(scanner.Text(), space)...)
 		}
 	}
 	return
