@@ -272,8 +272,6 @@ func TestMockServer(t *testing.T) {
 }
 
 func TestNotFound(t *testing.T) {
-	t.Parallel()
-
 	_, mux, server := MockServer()
 	defer server.Close()
 
