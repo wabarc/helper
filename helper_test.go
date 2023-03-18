@@ -628,3 +628,40 @@ func BenchmarkWriteFile(b *testing.B) {
 		_ = WriteFile(fn, data, 0644)
 	}
 }
+
+func TestRetryRemoveAll(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skipf("Root can write to read-only files anyway, so skip the read-only test.")
+	}
+
+	valid := filepath.Join(t.TempDir(), "valid")
+	err := os.WriteFile(valid, []byte("hi"), 0644)
+	if err != nil {
+		t.Fatalf("Unexpected write file: %s", valid)
+	}
+	readonly := filepath.Join(t.TempDir(), "readonly")
+	err = os.WriteFile(readonly, []byte("hi"), 0444)
+	if err != nil {
+		t.Fatalf("Unexpected write file: %s", valid)
+	}
+	nonexists := "nonexists"
+
+	tests := []struct {
+		path     string
+		retries  int
+		expected error
+	}{
+		{valid, 3, nil},
+		{readonly, 3, nil},
+		{nonexists, 3, nil},
+	}
+
+	for _, test := range tests {
+		t.Run(test.path, func(t *testing.T) {
+			err := RetryRemoveAll(test.path, test.retries)
+			if err != test.expected {
+				t.Errorf("Unexpected error: %v", err)
+			}
+		})
+	}
+}
