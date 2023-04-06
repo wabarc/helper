@@ -242,8 +242,7 @@ func TestTinyURL(t *testing.T) {
 
 func TestRandString(t *testing.T) {
 	got := RandString(36, "")
-	if len(got) != 36 {
-		t.Log(got)
+	if got == "" || len(got) != 36 {
 		t.Fatalf("Test random string failed, expect: %d, got: %d", 36, len(got))
 	}
 }
@@ -294,7 +293,7 @@ func TestNotFound(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			p := "/" + RandString(5, "lower")
+			p := "/" + RandString(5, "")
 			mux.HandleFunc(p, func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(test.code)
 				fmt.Fprintf(w, "Hello, World.")

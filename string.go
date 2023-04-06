@@ -6,21 +6,17 @@ package helper // import "github.com/wabarc/helper"
 
 import (
 	"bufio"
+	"crypto/rand"
 	"io"
-	"math/rand"
+	"math/big"
 	"reflect"
 	"strings"
-	"time"
 	"unsafe"
 
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 func RandString(length int, letter string) string {
 	alphabet := "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -32,10 +28,13 @@ func RandString(length int, letter string) string {
 	}
 
 	bytes := make([]byte, length)
-	rand.Seed(time.Now().UnixNano())
 	rand.Read(bytes)
 	for i := range bytes {
-		bytes[i] = alphabet[rand.Int63()%int64(len(alphabet))]
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(alphabet))))
+		if err != nil {
+			return ""
+		}
+		bytes[i] = alphabet[num.Int64()%int64(len(alphabet))]
 	}
 
 	return string(bytes)
