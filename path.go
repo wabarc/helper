@@ -42,7 +42,6 @@ func FindChromeExecPath() string {
 			// Unix-like
 			"headless_shell",
 			"headless-shell",
-			"chrome",
 			"chromium",
 			"chromium-browser",
 			"google-chrome",
@@ -50,6 +49,9 @@ func FindChromeExecPath() string {
 			"google-chrome-beta",
 			"google-chrome-unstable",
 			"/usr/bin/google-chrome",
+			"/usr/local/bin/chrome",
+			"/snap/bin/chromium",
+			"chrome",
 		}
 	}
 
