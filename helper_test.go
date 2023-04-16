@@ -664,3 +664,48 @@ func TestRetryRemoveAll(t *testing.T) {
 		})
 	}
 }
+
+func TestFindChromeExecPath(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "fake")
+	if err := os.Mkdir(path, 0755); err != nil {
+		t.Fatalf("Unexpected create directory: %s", path)
+	}
+	bin := filepath.Join(path, "chrome")
+	err := os.WriteFile(bin, []byte("foo"), 0755)
+	if err != nil {
+		t.Fatalf("Unexpected write file: %s", bin)
+	}
+
+	// Attach to PATH
+	path = filepath.Join(t.TempDir(), "bin")
+	if err := os.Mkdir(path, 0755); err != nil {
+		t.Fatalf("Unexpected create directory: %s", path)
+	}
+	bin = filepath.Join(path, "chrome")
+	err = os.WriteFile(bin, []byte("bar"), 0755)
+	if err != nil {
+		t.Fatalf("Unexpected write file: %s", bin)
+	}
+
+	tests := []struct {
+		bin      string
+		path     string
+		expected string
+	}{
+		{"", "", "google-chrome"},
+		{"", "path-not-found", "google-chrome"},
+		{"", path, bin},
+		{bin, "", bin},
+	}
+
+	for _, test := range tests {
+		t.Run(test.path, func(t *testing.T) {
+			t.Setenv("CHROME_BIN", test.bin)
+			t.Setenv("PATH", os.Getenv("PATH")+":"+test.path)
+			path := FindChromeExecPath()
+			if path != test.expected {
+				t.Errorf("Unexpected path: %s", path)
+			}
+		})
+	}
+}

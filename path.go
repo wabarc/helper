@@ -17,6 +17,13 @@ import (
 // but it will only be run when creating a new ExecAllocator.
 // Fork from: https://github.com/chromedp/chromedp/blob/4ea2300cf7c7065242867bdcb8772533e0a66ea7/allocate.go#L352-L383
 func FindChromeExecPath() string {
+	if path := os.Getenv("CHROME_BIN"); path != "" {
+		found, err := exec.LookPath(path)
+		if err == nil {
+			return found
+		}
+	}
+
 	var locations []string
 	switch runtime.GOOS {
 	case "darwin":
