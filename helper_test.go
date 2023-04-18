@@ -666,6 +666,11 @@ func TestRetryRemoveAll(t *testing.T) {
 }
 
 func TestFindChromeExecPath(t *testing.T) {
+	// Make sure the Chrome executable is not present.
+	if path := FindChromeExecPath(); path != "google-chrome" {
+		t.Skipf("Chrome executable %s exist, skipped", path)
+	}
+
 	path := filepath.Join(t.TempDir(), "fake")
 	if err := os.Mkdir(path, 0755); err != nil {
 		t.Fatalf("Unexpected create directory: %s", path)
