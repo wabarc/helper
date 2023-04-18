@@ -15,8 +15,15 @@ import (
 // system. It finds in different locations on different OS systems.
 // It could perform a rather aggressive search. That may make it a bit slow,
 // but it will only be run when creating a new ExecAllocator.
-// Fork from: https://github.com/chromedp/chromedp/blob/20ec34f0f513d0e6d3c3fb7f9f8ebb40ce713180/allocate.go#L342
+// Fork from: https://github.com/chromedp/chromedp/blob/4ea2300cf7c7065242867bdcb8772533e0a66ea7/allocate.go#L352-L383
 func FindChromeExecPath() string {
+	if path := os.Getenv("CHROME_BIN"); path != "" {
+		found, err := exec.LookPath(path)
+		if err == nil {
+			return found
+		}
+	}
+
 	var locations []string
 	switch runtime.GOOS {
 	case "darwin":
@@ -42,7 +49,6 @@ func FindChromeExecPath() string {
 			// Unix-like
 			"headless_shell",
 			"headless-shell",
-			"chrome",
 			"chromium",
 			"chromium-browser",
 			"google-chrome",
@@ -50,6 +56,9 @@ func FindChromeExecPath() string {
 			"google-chrome-beta",
 			"google-chrome-unstable",
 			"/usr/bin/google-chrome",
+			"/usr/local/bin/chrome",
+			"/snap/bin/chromium",
+			"chrome",
 		}
 	}
 
