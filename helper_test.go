@@ -79,8 +79,8 @@ func TestMatchURLFallback(t *testing.T) {
 	}{
 		{
 			name:     "Match Path",
-			text:     "foo bar https://example.org/せかい zoo",
-			expected: "https://webcache.googleusercontent.com/search?q=cache:https://example.org/%E3%81%9B%E3%81%8B%E3%81%84",
+			text:     "foo bar https://go.dev/せかい zoo",
+			expected: "https://webcache.googleusercontent.com/search?q=cache:https://go.dev/%E3%81%9B%E3%81%8B%E3%81%84",
 		},
 		{
 			name:     "Match and Use Google Cache",
