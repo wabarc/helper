@@ -5,6 +5,7 @@
 package helper // import "github.com/wabarc/helper"
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -209,23 +210,40 @@ func TestFileSize(t *testing.T) {
 }
 
 func TestRealURI(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skip test in short mode.")
-	}
+	var ts *httptest.Server
+	finalPath := "/final"
 
-	final := "https://example.com/"
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, final, http.StatusSeeOther)
+	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/start" {
+			http.Redirect(w, r, ts.URL+finalPath, http.StatusSeeOther)
+			return
+		}
+		if r.URL.Path == finalPath {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		http.NotFound(w, r)
 	}))
 	defer ts.Close()
 
-	u, _ := url.Parse(ts.URL)
-	want, err := RealURI(u)
-	if err != nil || want == nil {
-		t.Fatalf("Failed to request real uri")
+	u, err := url.Parse(ts.URL + "/start")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if want.String() != final {
-		t.Fatalf("Test get final URL failed, expect: %v got: %s", final, want.String())
+
+	serverAddr := strings.TrimPrefix(ts.URL, "http://")
+	testDial := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, network, serverAddr)
+	}
+
+	got, err := realURI(u, testDial)
+	if err != nil {
+		t.Fatalf("realURI: %v", err)
+	}
+
+	want := ts.URL + finalPath
+	if got.String() != want {
+		t.Fatalf("want %q, got %q", want, got.String())
 	}
 }
 

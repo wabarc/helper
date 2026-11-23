@@ -120,41 +120,15 @@ func strip(link string) string {
 
 // RealURI returns final URL
 func RealURI(u *url.URL) (*url.URL, error) {
+	return realURI(u, safeDialContext)
+}
+
+func realURI(u *url.URL, dialContext func(context.Context, string, string) (net.Conn, error)) (*url.URL, error) {
 	if err := validateURL(u); err != nil {
 		return nil, err
 	}
 
-	dialer := &net.Dialer{Timeout: 5 * time.Second}
-
-	transport := &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			host, port, err := net.SplitHostPort(addr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid host:port: %w", err)
-			}
-
-			ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
-			if err != nil || len(ips) == 0 {
-				return nil, fmt.Errorf("could not resolve host")
-			}
-
-			// Reject the hostname if *any* resolved address is non-public.
-			for _, ip := range ips {
-				if isBlockedIP(ip.IP) {
-					return nil, fmt.Errorf("request to internal or non-public address is blocked")
-				}
-			}
-
-			portNum, err := strconv.Atoi(port)
-			if err != nil || portNum < 1 || portNum > 65535 {
-				return nil, fmt.Errorf("invalid port")
-			}
-
-			// Connect to a checked IP directly, avoiding a second DNS lookup.
-			return dialer.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
-		},
-	}
-
+	transport := &http.Transport{DialContext: dialContext}
 	client := &http.Client{
 		Transport: transport,
 		Timeout:   10 * time.Second,
@@ -181,6 +155,41 @@ func RealURI(u *url.URL) (*url.URL, error) {
 		return nil, fmt.Errorf("response has no final URL")
 	}
 	return resp.Request.URL, nil
+}
+
+func safeDialContext(
+	ctx context.Context,
+	network, addr string,
+) (net.Conn, error) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		return nil, fmt.Errorf("invalid host:port: %w", err)
+	}
+
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil || len(ips) == 0 {
+		return nil, fmt.Errorf("could not resolve host")
+	}
+
+	// Reject the hostname if any resolved address is non-public.
+	for _, ip := range ips {
+		if isBlockedIP(ip.IP) {
+			return nil, fmt.Errorf("request to internal or non-public address is blocked")
+		}
+	}
+
+	portNum, err := strconv.Atoi(port)
+	if err != nil || portNum < 1 || portNum > 65535 {
+		return nil, fmt.Errorf("invalid port")
+	}
+
+	// Connect directly to a checked IP, avoiding a second DNS lookup.
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+	return dialer.DialContext(
+		ctx,
+		network,
+		net.JoinHostPort(ips[0].IP.String(), port),
+	)
 }
 
 func validateURL(u *url.URL) error {
