@@ -26,12 +26,17 @@ import (
 func FileName(link, contentType string) string {
 	now := time.Now().Format("2006-01-02-150405.000")
 	ext := ".html"
-	if exts, _ := mime.ExtensionsByType(contentType); len(exts) > 0 {
-		ext = exts[0]
-		if strings.HasSuffix(ext, "htm") {
-			ext = strings.ReplaceAll(ext, "htm", "html")
+
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err == nil && mediaType != "text/html" {
+		if exts, _ := mime.ExtensionsByType(contentType); len(exts) > 0 {
+			ext = exts[0]
 		}
 	}
+	if ext == ".htm" {
+		ext = ".html"
+	}
+
 	for _, e := range []string{"jpe", "jpeg"} {
 		if strings.HasSuffix(ext, e) {
 			ext = strings.ReplaceAll(ext, e, "jpg")
