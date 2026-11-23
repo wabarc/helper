@@ -8,9 +8,13 @@ Package helper handles common functions for the waybackk application in Golang.
 package helper // import "github.com/wabarc/helper"
 
 import (
+	"context"
+	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -115,14 +119,102 @@ func strip(link string) string {
 }
 
 // RealURI returns final URL
-func RealURI(u *url.URL) *url.URL {
-	resp, err := http.Head(u.String())
+func RealURI(u *url.URL) (*url.URL, error) {
+	if err := validateURL(u); err != nil {
+		return nil, err
+	}
+
+	dialer := &net.Dialer{Timeout: 5 * time.Second}
+
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid host:port: %w", err)
+			}
+
+			ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+			if err != nil || len(ips) == 0 {
+				return nil, fmt.Errorf("could not resolve host")
+			}
+
+			// Reject the hostname if *any* resolved address is non-public.
+			for _, ip := range ips {
+				if isBlockedIP(ip.IP) {
+					return nil, fmt.Errorf("request to internal or non-public address is blocked")
+				}
+			}
+
+			portNum, err := strconv.Atoi(port)
+			if err != nil || portNum < 1 || portNum > 65535 {
+				return nil, fmt.Errorf("invalid port")
+			}
+
+			// Connect to a checked IP directly, avoiding a second DNS lookup.
+			return dialer.DialContext(ctx, network, net.JoinHostPort(ips[0].IP.String(), port))
+		},
+	}
+
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   10 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("too many redirects")
+			}
+			return validateURL(req.URL)
+		},
+	}
+
+	req, err := http.NewRequest(http.MethodHead, u.String(), nil)
 	if err != nil {
-		return u
+		return nil, fmt.Errorf("invalid request URI: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
 	}
 	defer resp.Body.Close()
 
-	return resp.Request.URL
+	if resp.Request == nil || resp.Request.URL == nil {
+		return nil, fmt.Errorf("response has no final URL")
+	}
+	return resp.Request.URL, nil
+}
+
+func validateURL(u *url.URL) error {
+	if u == nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return fmt.Errorf("only http and https URLs are allowed")
+	}
+	if u.Hostname() == "" || u.User != nil {
+		return fmt.Errorf("invalid URL")
+	}
+	return nil
+}
+
+func isBlockedIP(ip net.IP) bool {
+	if ip == nil {
+		return true
+	}
+	if v4 := ip.To4(); v4 != nil {
+		ip = v4
+	}
+
+	return ip == nil ||
+		ip.IsLoopback() ||
+		ip.IsPrivate() ||
+		ip.IsLinkLocalUnicast() ||
+		ip.IsLinkLocalMulticast() ||
+		ip.IsUnspecified() ||
+		ip.IsMulticast()
+}
+
+func ipString(ip net.IP) string {
+	if ip == nil {
+		return ""
+	}
+	return ip.String()
 }
 
 func TinyURL(link string) string {

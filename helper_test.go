@@ -7,6 +7,7 @@ package helper // import "github.com/wabarc/helper"
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -219,12 +220,80 @@ func TestRealURI(t *testing.T) {
 	defer ts.Close()
 
 	u, _ := url.Parse(ts.URL)
-	want := RealURI(u)
-	if want == nil {
+	want, err := RealURI(u)
+	if err != nil || want == nil {
 		t.Fatalf("Failed to request real uri")
 	}
 	if want.String() != final {
 		t.Fatalf("Test get final URL failed, expect: %v got: %s", final, want.String())
+	}
+}
+
+func TestValidateURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		rawURL  string
+		wantErr bool
+	}{
+		{"http URL", "http://example.com/path", false},
+		{"https URL", "https://example.com", false},
+		{"missing host", "http:///path", true},
+		{"unsupported scheme", "ftp://example.com", true},
+		{"missing scheme", "example.com", true},
+		{"userinfo", "http://user:pass@example.com", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u, err := url.Parse(tt.rawURL)
+			if err != nil {
+				t.Fatalf("url.Parse(%q): %v", tt.rawURL, err)
+			}
+
+			err = validateURL(u)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("validateURL(%q) error = %v, wantErr %v", tt.rawURL, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestIsBlockedIP(t *testing.T) {
+	tests := []struct {
+		ip        string
+		wantBlock bool
+	}{
+		{"127.0.0.1", true},             // IPv4 loopback
+		{"10.0.0.1", true},              // private
+		{"172.16.0.1", true},            // private
+		{"192.168.1.1", true},           // private
+		{"169.254.1.1", true},           // link-local
+		{"::1", true},                   // IPv6 loopback
+		{"fc00::1", true},               // IPv6 private
+		{"fe80::1", true},               // IPv6 link-local
+		{"::ffff:127.0.0.1", true},      // IPv4-mapped loopback
+		{"8.8.8.8", false},              // public IPv4
+		{"2606:4700:4700::1111", false}, // public IPv6
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.ip, func(t *testing.T) {
+			ip := net.ParseIP(tt.ip)
+			if ip == nil {
+				t.Fatalf("net.ParseIP(%q) returned nil", tt.ip)
+			}
+
+			got := isBlockedIP(ip)
+			if got != tt.wantBlock {
+				t.Errorf("isBlockedIP(%q) = %v, want %v", tt.ip, got, tt.wantBlock)
+			}
+		})
+	}
+}
+
+func TestIsBlockedIPRejectsNil(t *testing.T) {
+	if !isBlockedIP(nil) {
+		t.Error("isBlockedIP(nil) = false, want true")
 	}
 }
 
